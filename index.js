@@ -17,6 +17,10 @@ app.use(express.json())
 dotenv.config()
 app.use(cors())
 
+app.get('/', (req, res) => {
+  res.send('GET request to the homepage')
+})
+
 app.use("/api/v1", router)
 ConnectDB()
 const port = process.env.PORT
