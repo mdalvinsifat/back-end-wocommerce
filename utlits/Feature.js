@@ -1,12 +1,9 @@
-const DataUriParser = require("datauri/parser.js")
-const path = require("path")
+const cloudinary = require("cloudinary").v2;
 
-const getDataUri = (file) =>{
-    const parser = new DataUriParser()
-    const extname = path.extname(file.originalname).toString()
-    return parser.format(extname, file.buffer)
-}
+cloudinary.config({
+  cloud_name:"dhhb29n7c",
+  api_key:"179218646364157",
+  api_secret:"HkN-ppaJPIiycewX4FNT27MCW_I"
+});
 
-
-module.exports = getDataUri
- 
+module.exports = cloudinary;

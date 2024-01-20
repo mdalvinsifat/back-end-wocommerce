@@ -1,7 +1,5 @@
 const Category = require("../model/model")
-const getDataUri = require("../utlits/Feature")
-const cloudinary = require("cloudinary")
-
+const cloudinary = require("../utlits/Feature")
 //get product
 const GetProduct = async(req, res) =>{
   try {
@@ -26,30 +24,25 @@ const GetProduct = async(req, res) =>{
 const CreateProduct = async(req, res) =>{
 try {
   const {name, category, price , oldPrice, description , sku} = req.body 
-  // if(!name || !category || !price || !oldPrice || !description || !sku ){
-  //   res.status(200).send({
-  //     success:false, 
-  //     message:"please Required the all fileds"
-  //   })
-  // }
   if (!req.file) {
     return res.status(500).send({
       success: false,
       message: "please provide product images",
     });
   }
-  const file = getDataUri(req.file)
-
-  const cdb = await cloudinary.v2.uploader.upload(file.content)
-  const images = {
-    public_id:cdb.public_id,
-    url:cdb.secure_url
-  }
-
-  const data = await Category.create({
-    name ,description, sku, category, price, oldPrice,  image: [images],
+  const result = await cloudinary.uploader.upload(req.file.path);
+  const data = await Category({
+    name,
+    description,
+     sku, 
+     category,
+    price,
+     oldPrice,
+     avatar: result.secure_url,
+     cloudinary_id: result.public_id,
   })
 
+  await data.save()
 res.status(200).send({
   success:true, 
   message:"user create Successfully",
@@ -62,6 +55,7 @@ res.status(200).send({
     message:"please check controller",
   error
   })
+  console.log(error)
 }
 
 }
@@ -90,43 +84,39 @@ const ReadId = async(req, res) =>{
 
 const Update = async(req, res) =>{
   try {
-    const data = await Category.findById(req.params.id)
-    if(!data){
-      res.status(401).send({
-        success:false, 
-        message:"product not found"
-      })
-    }    
-    const {name , description , category , sku , price, oldPrice}= req.body 
-    if(name)data.name = name;
-    if(description)data.description = description;
-    if(category)data.category = category;
-    if(sku)data.sku = sku;
-    if(price)data.price = price;
-    if(oldPrice)data.oldPrice = oldPrice;
-
-    if (!req.file) {
-      return res.status(404).send({
-        success: false,
-        message: "Product image not found",
-      });
+    let user = await Category.findById(req.params.id);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
-    const file = getDataUri(req.file);
-    const cdb = await cloudinary.v2.uploader.upload(file.content);
-    const images = {
-      public_id: cdb.public_id,
-      url: cdb.secure_url,
+
+    await cloudinary.uploader.destroy(user.cloudinary_id);
+    let result ;
+    if (req.file) {
+       await cloudinary.uploader.upload(req.file.path);
+    }
+
+
+    const data = {
+      name: req.body.name || user.name,
+      description: req.body.descriptio || user.description,
+      category : req.body.category || user.category,
+      price : req.body.price || user.price, 
+      oldPrice : req.body.oldPrice || user.oldPrice, 
+      sku : req.body.sku || user.sku, 
+      avatar: result?.secure_url || user.avatar,
+      cloudinary_id: result?.public_id || user.cloudinary_id,
     };
-    // save
-    data.image.push(images);
-    await data.save()
+
+    const data1 = await Category.findByIdAndUpdate(req.params.id, data, { new: true });
+
     res.status(200).send({
       success: true,
       message: "product details updated",
-      data
+      data1
     });
-
-  } catch (error) {
+    } catch (error) {
     res.status(401).send({
       success:false,
       message:"please check controller",
@@ -146,15 +136,16 @@ if(!data){
     message:"Product is not found"
   })
 }
-for(let i=0;i<data.image.length;i++){
-  await cloudinary.v2.uploader.destroy(data.image[i].public_id)
-}
+await cloudinary.uploader.destroy(data.cloudinary_id);
 await data.deleteOne()
+
 res.status(200).send({
   success: true,
   message: "PRoduct Deleted Successfully",
   data
 });
+
+
   } catch (error) {
     res.status(200).send({
       success:false,
@@ -171,7 +162,7 @@ const SearchKeyword = async(req, res) =>{
       const result = await Category.find({
           $or:[
               {name : {$regex : keyword , $options:"i"}},
-              {price : {$regex : keyword , $options:"i"}}
+              {description : {$regex : keyword , $options:"i"}},
           ]
       })
       res.status(200).send({

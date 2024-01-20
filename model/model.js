@@ -25,12 +25,12 @@ const categorySchema = new mongoose.Schema({
     type: String,
     required: [true, "sku is required"],
   },
- image:[
-  {
-    public_id:String , 
-    url:String
-  }
- ]
+   avatar: {
+    type: String,
+  },
+  cloudinary_id: {
+    type: String,
+  },
 },{timestamps:true});
 
 const Category = mongoose.model('Category', categorySchema);
